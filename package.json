@@ -1,0 +1,21 @@
+{
+  "name": "node-sookryeon",
+  "version": "1.0.0",
+  "main": "src/app.js",
+  "repository": "git@github.com:seungyeopyoo/node-sookryeon.git",
+  "author": "yooseungyeop <yooseungyub>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "prettier": "^3.2.5"
+  }
+}
