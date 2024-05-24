@@ -49,25 +49,60 @@ router.post('/sign-up', async (req, res, next) => {
         data: {
             email,
             password: hashedPassword,
-            name,
         }
     });
 
-    await prisma.userInfo.create({
+    const userinfo = await prisma.userInfo.create({
         data: {
-            userId: user.id, // 생성한 유저의 userId를 바탕으로 사용자 정보를 생성합니다.
+            userid: user.id, // 생성한 유저의 userId를 바탕으로 사용자 정보를 생성합니다.
             name,
-        },
+        }
     });
     //  -  사용자 ID, 이메일, 이름, 역할, 생성일시, 수정일시를 반환합니다.
     return res.status(201).json({
         id: user.id,
         email,
         name,
-        role: user.role,
+        role: userinfo.role,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
     })
 });
+// 로그인 API
+// 이메일 비밀번호를 req.body로 전달 받습니다.
+router.post('/sign-in', async (req, res, next) => {
+    const { email, password } = req.body
+    // → 로그인 정보 중 하나라도 빠진 경우 - “OOO을 입력해 주세요.”
+    if (!email) {
+        return res.status(400).json({ message: '이메일을 입력해주세요' });
+    }
+    if (!password) {
+        return res.status(400).json({ message: '비밀번호를 입력해주세요' });
+    }
+    // → 이메일 형식에 맞지 않는 경우 - “이메일 형식이 올바르지 않습니다.”
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: '이메일 형식이 올바르지 않습니다.' });
+    }
+    // → 이메일로 조회가 불가하거나 비밀번호가 다를 경우 - “인증 정보가 유효하지 않습니다”
+    const user = await prisma.user.findUnique({
+        where: {
+            email: email
+        }
+    });
+
+    if (!user) {
+        return res.status(400).json({ message: '인증 정보가 유효하지 않습니다.' });
+    }
+
+    const checkpassword = await bcrypt.compare(password, user.password);
+
+    if (!checkpassword) {
+        return res.status(400).json({ message: '인증 정보가 유효하지 않습니다.' });
+    }
+
+    return res.status(200).json({ message: '로그인에 성공했습니다.' });
+});
+
 
 export default router;

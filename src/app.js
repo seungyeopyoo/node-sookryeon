@@ -1,12 +1,11 @@
 import express from 'express';
-import { json } from 'express';
 import { errorHandler } from './middlewares/error-handler.middleware.js';
 import UserRouter from './routers/user.router.js'
 
 const app = express();
 const port = 3306;
 
-app.use(express, json());
+app.use(express.json());
 app.use(errorHandler);
 app.use('/api', [UserRouter]);
 
