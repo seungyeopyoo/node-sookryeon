@@ -2,7 +2,7 @@ import express from 'express';
 import { errorHandler } from './middlewares/error-handler.middleware.js';
 
 const app = express();
-const port = 3010;
+const port = 3306;
 
 app.use(errorHandler);
 
