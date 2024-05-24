@@ -8,23 +8,9 @@ export const prisma = new PrismaClient({
     errorFormat: 'pretty',
 }); // PrismaClient 인스턴스를 생성합니다.
 
-async function connectToDatabase() {
-    try {
-        await prisma.$connect();
-        console.log('DB 연결에 성공했습니다.');
-    } catch (error) {
-        console.error('DB 연결에 실패했습니다.', error);
-    }
-}
-
-// 데이터베이스에 연결을 시도합니다.
-connectToDatabase();
-
-export default prisma;
-
-// try {
-//     await prisma.$connect();
-//     console.log('DB 연결에 성공했습니다.');
-// } catch (error) {
-//     console.error('DB 연결에 실패했습니다.', error);
-// } 연결확인 주석처리 
+try {
+    await prisma.$connect();
+    console.log('DB 연결에 성공했습니다.');
+} catch (error) {
+    console.error('DB 연결에 실패했습니다.', error);
+} 
