@@ -28,7 +28,7 @@ enum Status {
 }
 
 model User {
-  id    Int      @id @default(autoincrement()) @map("userId")
+  id    Int      @id @default(autoincrement()) @map("userid")
   email     String   @unique @map("email")
   name      String   @map("name")
   role      Role   @map("role")
@@ -43,7 +43,7 @@ model User {
 }
 
 model UserInfo {
-  userId      Int      @id @default(autoincrement()) @map("userId")
+  userid      Int      @id @default(autoincrement()) @map("userid")
   email       String   @unique @map("email") 
   name         String   @map("name")
   role         Role     @map("role")
@@ -51,13 +51,13 @@ model UserInfo {
   updatedAt    DateTime @updatedAt @map("updatedAt")
 
   // User 테이블과 관계를 설정합니다.
-  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User User @relation(fields: [userid], references: [id], onDelete: Cascade)
 
   @@map("UserInfo")
 }
 
 model Resume {
-  userId    Int      @id @default(autoincrement()) @map("userId")
+  userid    Int      @id @default(autoincrement()) @map("userid")
   resumeid    Int    @unique @map("resumeid") 
   title     String   @map("title")
   content   String   @map("content") @db.Text
@@ -66,7 +66,7 @@ model Resume {
   updatedAt DateTime @updatedAt @map("updatedAt")
 
   // User 테이블과 관계를 설정합니다.
-  User     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User     User    @relation(fields: [userid], references: [id], onDelete: Cascade)
   ResumeUpdate ResumeUpdate[] // 이력서(Resume) 테이블과 이력서변경사항(ResumeUpdate) 테이블이 1:N 관계를 맺습니다.
 
   @@map("Resume")
@@ -74,17 +74,22 @@ model Resume {
 
 model ResumeUpdate {
   resumeid    Int      @id @default(autoincrement()) @map("resumeid")
-  userId    Int    @unique @map("userId") 
+  userid    Int      @map("userid") 
   title     String   @map("title")
   content   String   @map("content") @db.Text
-  changedapplystatus Status @default(APPLY) @map("changedapplystatus")
+  oldstatus Status @default(APPLY) @map("oldstatus")
+  newstatus Status @default(APPLY) @map("newstatus")
   createdAt DateTime @default(now()) @map("createdAt")
   updatedAt DateTime @updatedAt @map("updatedAt")
 
   // Resume 테이블과 관계를 설정합니다.
   Resume Resume @relation(fields: [resumeid], references: [resumeid], onDelete: Cascade)
   // User 테이블과 관계를 설정합니다.
-  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User User @relation(fields: [userid], references: [id], onDelete: Cascade)
 
   @@map("ResumeUpdate")
+
+  // 명시적 인덱스 제거 (이미 존재하는 경우)
+  // @@index([userId], name: "ResumeUpdate_userid_key") <- 이 줄을 제거합니다.  
+  // 변경으로 인해 userId      Int      @unique @map("userId") 에서 @unique 삭제 
 }
