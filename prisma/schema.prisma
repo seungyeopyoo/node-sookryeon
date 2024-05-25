@@ -28,10 +28,9 @@ enum Status {
 }
 
 model User {
-  id    Int      @id @default(autoincrement()) @map("userid")
+  id        Int      @id @default(autoincrement()) @map("userid")
   email     String   @unique @map("email")
-  name      String   @map("name")
-  role      Role   @map("role")
+  password  String    @map("password")
   createdAt DateTime @default(now()) @map("createdAt")
   updatedAt DateTime @updatedAt @map("updatedAt")
 
@@ -43,10 +42,10 @@ model User {
 }
 
 model UserInfo {
-  userid      Int      @id @default(autoincrement()) @map("userid")
-  email       String   @unique @map("email") 
+  id           Int      @id @default(autoincrement()) @map("id")
+  userid       Int      @unique @map("userid")
   name         String   @map("name")
-  role         Role     @map("role")
+  role         Role     @default(APPLICANT)@map("role")
   createdAt    DateTime @default(now()) @map("createdAt")
   updatedAt    DateTime @updatedAt @map("updatedAt")
 
