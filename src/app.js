@@ -1,6 +1,6 @@
 import express from 'express';
 import { errorHandler } from './middlewares/error-handler.middleware.js';
-import UserRouter from './routers/user.router.js'
+import UserRouter from './routers/auth.router.js'
 
 const app = express();
 const port = 3306;
