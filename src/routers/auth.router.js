@@ -74,12 +74,15 @@ router.post('/sign-up', async (req, res, next) => {
     });
     //  -  사용자 ID, 이메일, 이름, 역할, 생성일시, 수정일시를 반환합니다.
     return res.status(201).json({
-        id: user.id,
-        email,
-        name,
-        role: userinfo.role,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        message: '회원가입에 성공하였습니다.',
+        data: {
+            id: user.id,
+            email,
+            name,
+            role: userinfo.role,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+        }
     });
 });
 // 로그인 API
@@ -111,10 +114,10 @@ router.post('/sign-in', async (req, res, next) => {
     }
 
     const token = generateAccessToken(user.id);
+    res.cookie('accessToken', `Bearer ${token}`); //accessToken을 cookie로 반환합니다.
 
     return res.status(200).json({
         message: '로그인에 성공했습니다.',
-        token, //AccessToken을 반환합니다.
     });
 });
 

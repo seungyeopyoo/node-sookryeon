@@ -56,8 +56,8 @@ model UserInfo {
 }
 
 model Resume {
-  userid    Int      @id @default(autoincrement()) @map("userid")
-  resumeid    Int    @unique @map("resumeid") 
+  resumeid  Int      @id @default(autoincrement()) @map("resumeid")
+  userid    Int      @unique @map("userid") 
   title     String   @map("title")
   content   String   @map("content") @db.Text
   applystatus Status @default(APPLY) @map("status")
