@@ -46,8 +46,8 @@ router.post('/resume', requireAccessToken, async (req, res, next) => {
 });
 /** 이력서 목록 조회 API (🔐 AccessToken 인증 필요) 내가 등록 한 이력서 목록을 조회합니다.*/
 
+// → 사용자 정보는 인증 Middleware(req.user)를 통해서 전달 받습니다.
 router.get('/resume', requireAccessToken, async (req, res, next) => {
-    // → 사용자 정보는 인증 Middleware(req.user)를 통해서 전달 받습니다.
     const userId = req.userId;
     // → 쿼리 파라미터에서 정렬 조건을 가져옵니다. 기본값은 'DESC'입니다.
     const { sortOrder = 'DESC' } = req.query;
@@ -69,13 +69,9 @@ router.get('/resume', requireAccessToken, async (req, res, next) => {
             applystatus: true,
             createdAt: true,
             updatedAt: true,
-            User: {
+            UserInfo: {
                 select: {
-                    UserInfo: {
-                        select: {
-                            name: true
-                        }
-                    }
+                    name: true
                 }
             }
         },
@@ -91,7 +87,7 @@ router.get('/resume', requireAccessToken, async (req, res, next) => {
     const result = resume.map(resume => ({
         resumeid: resume.resumeid,
         userid: resume.userid,
-        name: resume.User.UserInfo.name,
+        name: resume.UserInfo.name,
         title: resume.title,
         content: resume.content,
         applystatus: resume.applystatus,
@@ -101,15 +97,70 @@ router.get('/resume', requireAccessToken, async (req, res, next) => {
     return res.status(200).json({ data: result });
 });
 /**이력서 상세 조회 API (🔐 AccessToken 인증 필요) 내가 등록 한 이력서의 상세 정보를 조회합니다. */
+
 // → 사용자 정보는 인증 Middleware(req.user)를 통해서 전달 받습니다.
 // → 이력서 ID를 Path Parameters(req.params)로 전달 받습니다.
+router.get('/resume/:resumeid', requireAccessToken, async (req, res, next) => {
+    const userId = req.userId;
+    const { resumeid } = req.params;
+    // → 이력서 정보가 없는 경우 → “이력서가 존재하지 않습니다.”
+    if (!resumeid) {
+        return res.status(400).json({ message: '이력서가 존재하지 않습니다.' });
+    }
+    // → 현재 로그인 한 사용자가 작성한 이력서만 조회합니다.
+    // → DB에서 이력서 조회 시 이력서 ID, 작성자 ID가 모두 일치해야 합니다.
+    // → 작성자 ID가 아닌 작성자 이름을 반환하기 위해 스키마에 정의 한 Relation을 활용해 조회합니다.
+    const resume = await prisma.resume.findFirst({
+        where: {
+            userid: userId,
+            resumeid: +resumeid
+        },
+        select: {
+            resumeid: true,
+            userid: true,
+            title: true,
+            content: true,
+            applystatus: true,
+            createdAt: true,
+            updatedAt: true,
+            UserInfo: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    });
+    if (!resume) {
+        return res.status(404).json({ message: '이력서가 존재하지 않습니다.' });
+    }
+
+    // 이력서 ID, 작성자 이름, 제목, 자기소개, 지원 상태, 생성일시, 수정일시를 반환합니다.
+    const result = {
+        resumeid: resume.resumeid,
+        userid: resume.userid,
+        name: resume.UserInfo.name,
+        title: resume.title,
+        content: resume.content,
+        applystatus: resume.applystatus,
+        createdAt: resume.createdAt,
+        updatedAt: resume.updatedAt,
+    };
+    return res.status(200).json({ data: result });
+})
+/** 이력서 수정 API (🔐 AccessToken 인증 필요) 내가 등록 한 이력서를 수정합니다.*/
 
 
+// → 사용자 정보는 인증 Middleware(req.user)를 통해서 전달 받습니다.
+// → 이력서 ID를 Path Parameters(req.params)로 전달 받습니다.
+// → 제목, 자기소개를 Request Body(req.body)로 전달 받습니다.
+
+// → 제목, 자기소개 둘 다 없는 경우 → “수정 할 정보를 입력해 주세요.”
 // → 이력서 정보가 없는 경우 → “이력서가 존재하지 않습니다.”
 
-// → 현재 로그인 한 사용자가 작성한 이력서만 조회합니다.
+// → 현재 로그인 한 사용자가 작성한 이력서만 수정합니다.
 // → DB에서 이력서 조회 시 이력서 ID, 작성자 ID가 모두 일치해야 합니다.
-// → 작성자 ID가 아닌 작성자 이름을 반환하기 위해 스키마에 정의 한 Relation을 활용해 조회합니다.
+// → DB에서 이력서 정보를 수정합니다.
+// → 제목, 자기소개는 개별 수정이 가능합니다.
 
-// 이력서 ID, 작성자 이름, 제목, 자기소개, 지원 상태, 생성일시, 수정일시를 반환합니다.
+// → 수정 된 이력서 ID, 작성자 ID, 제목, 자기소개, 지원 상태, 생성일시, 수정일시를 반환합니다.
 export default router;
