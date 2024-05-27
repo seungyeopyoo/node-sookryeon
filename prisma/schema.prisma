@@ -35,7 +35,6 @@ model User {
   updatedAt DateTime @updatedAt @map("updatedAt")
 
   UserInfo UserInfo? // 사용자(User) 테이블과 사용자 정보(UserInfo) 테이블이 1:1 관계를 맺습니다.
-  Resume     Resume[] // 사용자(User) 테이블과 이력서(Resume) 테이블이 1:N 관계를 맺습니다.
   ResumeUpdate  ResumeUpdate[] // 사용자(User) 테이블과 이력서변경사항(ResumeUpdate) 테이블이 1:N 관계를 맺습니다.
 
   @@map("User")
@@ -51,13 +50,13 @@ model UserInfo {
 
   // User 테이블과 관계를 설정합니다.
   User User @relation(fields: [userid], references: [id], onDelete: Cascade)
-
+   Resume     Resume[] // 사용자(UserInfo) 테이블과 이력서(Resume) 테이블이 1:N 관계를 맺습니다.
   @@map("UserInfo")
 }
 
 model Resume {
-  userid    Int      @id @default(autoincrement()) @map("userid")
-  resumeid    Int    @unique @map("resumeid") 
+  resumeid  Int      @id @default(autoincrement()) @map("resumeid")
+  userid    Int      @map("userid") 
   title     String   @map("title")
   content   String   @map("content") @db.Text
   applystatus Status @default(APPLY) @map("status")
@@ -65,14 +64,14 @@ model Resume {
   updatedAt DateTime @updatedAt @map("updatedAt")
 
   // User 테이블과 관계를 설정합니다.
-  User     User    @relation(fields: [userid], references: [id], onDelete: Cascade)
+  UserInfo     UserInfo    @relation(fields: [userid], references: [userid], onDelete: Cascade)
   ResumeUpdate ResumeUpdate[] // 이력서(Resume) 테이블과 이력서변경사항(ResumeUpdate) 테이블이 1:N 관계를 맺습니다.
 
   @@map("Resume")
 }
 
 model ResumeUpdate {
-  resumeid    Int      @id @default(autoincrement()) @map("resumeid")
+  resumeid  Int      @id @default(autoincrement()) @map("resumeid")
   userid    Int      @map("userid") 
   title     String   @map("title")
   content   String   @map("content") @db.Text
