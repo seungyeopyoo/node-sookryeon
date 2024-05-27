@@ -226,5 +226,36 @@ router.patch('/resume/:resumeid', requireAccessToken, async (req, res, next) => 
     };
     return res.status(200).json({ data: result });
 })
+/** 이력서 삭제 API (🔐 AccessToken 인증 필요) 내가 등록 한 이력서를 삭제합니다.*/
+
+// → 사용자 정보는 인증 Middleware(req.user)를 통해서 전달 받습니다.
+router.delete('/resume/:resumeid', requireAccessToken, async (req, res, next) => {
+    // → 이력서 ID를 Path Parameters(req.params)로 전달 받습니다.
+    const { resumeid } = req.params;
+    const userId = req.userId;
+    // → 이력서 정보가 없는 경우 → “이력서가 존재하지 않습니다.”
+    if (!resumeid) {
+        return res.status(400).json({ message: '이력서가 존재하지 않습니다.' });
+    }
+    // → DB에서 이력서 조회 시 이력서 ID, 작성자 ID가 모두 일치해야 합니다.
+    const resume = await prisma.resume.findFirst({
+        where: {
+            userid: userId,
+            resumeid: +resumeid
+        },
+    });
+    if (!resume) {
+        return res.status(404).json({ message: '이력서를 찾을 수 없습니다.' });
+    }
+    // → DB에서 이력서 정보를 삭제합니다.
+    const deleteResume = await prisma.resume.delete({
+        where: { resumeid: +resumeid },
+    });
+    // → 삭제 된 이력서 ID를 반환합니다.
+    const result = {
+        resumeid: deleteResume.resumeid,
+    };
+    return res.status(200).json({ data: result });
+})
 
 export default router;
