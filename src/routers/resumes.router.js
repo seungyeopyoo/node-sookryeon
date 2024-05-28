@@ -234,5 +234,73 @@ router.delete('/resume/:resumeid', requireAccessToken, async (req, res, next) =>
     };
     return res.status(200).json({ data: result });
 })
+/**이력서 목록 조회 API 추가 구현 (🔐 AccessToken 인증) */
+// 채용 담당자가 등록 된 모든 이력서를 조회합니다.
+
+// → Query Parameters(req.query)으로 필터링 조건을 받습니다.정렬과 필터링은 동시에 사용할 수 있습니다
+router.get('/resumeupdate/resume', requireAccessToken, async (req, res, next) => {
+    const { sortOrder = 'DESC', status } = req.query;
+
+    // 역할이 RECRUITER 인 경우 모든 사용자의 이력서를 조회할 수 있습니다.
+    const userRole = req.UserInfo.role;
+
+    if (userRole !== 'RECRUITER') {
+        return res.status(403).json({ message: '접근 권한이 없습니다.' });
+    }
+
+    //  정렬 및 필터링 조건에 따라 다른 결과 값을 조회합니다.
+    const validSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'asc' : 'desc';
+
+    // → 지원 상태 별 필터링 조건을 받습니다. 값이 없는 경우 모든 상태의 이력서를 조회합니다
+    const statusFilter = status ? { applystatus: status } : {};
+
+    // DB에서 이력서 목록을 조회합니다.
+    const resume = await prisma.resume.findMany({
+        where: {
+            ...statusFilter,
+        },
+        select: {
+            resumeid: true,
+            userid: true,
+            title: true,
+            content: true,
+            applystatus: true,
+            createdAt: true,
+            updatedAt: true,
+            UserInfo: {
+                select: {
+                    name: true
+                }
+            }
+        },
+        orderBy: {
+            createdAt: validSortOrder,
+        }
+    });
+
+    // 일치하는 값이 없는 경우 → 빈 배열([])을 반환합니다. (StatusCode: 200)
+    if (!resume) {
+        return res.status(200).json([]);
+    }
+
+    // → 이력서 ID, 작성자 이름, 제목, 자기소개, 지원 상태, 생성일시, 수정일시의 목록을 반환합니다.
+    const result = resume.map(resume => ({
+        resumeid: resume.resumeid,
+        userid: resume.userid,
+        name: resume.UserInfo.name,
+        title: resume.title,
+        content: resume.content,
+        applystatus: resume.applystatus,
+        createdAt: resume.createdAt,
+        updatedAt: resume.updatedAt,
+    }));
+
+    return res.status(200).json({ data: result });
+})
 
 export default router;
+
+/** 이력서 상세 조회 API 추가 구현 (🔐 AccessToken 인증)*/
+// 채용 담당자가 특정 사용자의 이력서를 조회합니다.
+
+// 역할이 RECRUITER 인 경우 이력서 작성 사용자와 일치하지 않아도 이력서를 조회할 수 있습니다.
