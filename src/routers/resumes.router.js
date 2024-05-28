@@ -21,13 +21,14 @@ router.post('/resume', requireAccessToken, async (req, res, next) => {
         return res.status(400).json({ message: '자기소개는 150자 이상 작성해야 합니다.' });
     }
 
-    // 사용자 ID는 미들웨어를 통해 req.userId에 설정됨
-    const userId = req.userId;
+    // 사용자 ID는 미들웨어를 통해 req.user에 설정됨
+    const { id } = req.user;
+
 
     // 새로운 이력서 생성
     const newResume = await prisma.resume.create({
         data: {
-            userid: userId,
+            userid: id,
             title,
             content,
         }
@@ -198,33 +199,9 @@ router.patch('/resume/:resumeid', requireAccessToken, async (req, res, next) => 
             ...(title && { title }),
             ...(content && { content }),
         },
-        select: {
-            resumeid: true,
-            userid: true,
-            title: true,
-            content: true,
-            applystatus: true,
-            createdAt: true,
-            updatedAt: true,
-            UserInfo: {
-                select: {
-                    name: true
-                }
-            }
-        }
     });
     // → 수정 된 이력서 ID, 작성자 ID, 제목, 자기소개, 지원 상태, 생성일시, 수정일시를 반환합니다.
-    const result = {
-        resumeid: updatedResume.resumeid,
-        userid: updatedResume.userid,
-        name: updatedResume.UserInfo.name,
-        title: updatedResume.title,
-        content: updatedResume.content,
-        applystatus: updatedResume.applystatus,
-        createdAt: updatedResume.createdAt,
-        updatedAt: updatedResume.updatedAt,
-    };
-    return res.status(200).json({ data: result });
+    return res.status(200).json({ data: updatedResume });
 })
 /** 이력서 삭제 API (🔐 AccessToken 인증 필요) 내가 등록 한 이력서를 삭제합니다.*/
 
