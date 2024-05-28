@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../utils/prisma.util.js';
 import { requireAccessToken } from '../middlewares/require-access-token.middleware.js';
+import { requireRoles } from '../middlewares/require-roles.middleware.js';
 
 const router = express.Router();
 /** 이력서 생성 API (🔐 AccessToken 인증 필요) 새로운 이력서를 생성합니다.*/
@@ -49,19 +50,30 @@ router.post('/resume', requireAccessToken, async (req, res, next) => {
 
 // → 사용자 정보는 인증 Middleware(req.user)를 통해서 전달 받습니다.
 router.get('/resume', requireAccessToken, async (req, res, next) => {
-    const userId = req.userId;
+    const { id } = req.user;
     // → 쿼리 파라미터에서 정렬 조건을 가져옵니다. 기본값은 'DESC'입니다.
-    const { sortOrder = 'DESC' } = req.query;
+    const { sort, status } = req.query;
     // → 생성일시 기준 정렬은 과거순(ASC), 최신순(DESC)으로 전달 받습니다. 
     // 정렬 조건이 'ASC' 또는 'DESC' 중 하나인지 확인합니다. 그렇지 않으면 기본값 'DESC'를 사용합니다.
     // 값이 없는 경우 최신순(DESC) 정렬을 기본으로 합니다. 대소문자 구분 없이 동작해야 합니다.
-    const validSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'asc' : 'desc';
+    const sortOrder = sort ? sort.toLowerCase() : 'desc';
+    // → 지원 상태 별 필터링 조건을 받습니다. 값이 없는 경우 모든 상태의 이력서를 조회합니다
+    const statusFilter = status ? status.toUpperCase() : undefined;
     // 현재 로그인 한 사용자가 작성한 이력서 목록만 조회합니다.
     // → DB에서 이력서 조회 시 작성자 ID가 일치해야 합니다.
     // → 정렬 조건에 따라 다른 결과 값을 조회합니다.
     // → 작성자 ID가 아닌 작성자 이름을 반환하기 위해 스키마에 정의 한 Relation을 활용해 조회합니다.
+    const { role } = await prisma.userInfo.findFirst({
+        where: { userid: id },
+        select: { role: true }
+    });
+    // 역할이 RECRUITER 인 경우 모든 사용자의 이력서를 조회할 수 있습니다.APPLICANT RECRUITER
     const resume = await prisma.resume.findMany({
-        where: { userid: userId },
+        where: {
+            userid: role === 'APPLICANT' ? id : undefined,
+            applystatus: statusFilter,
+
+        },
         select: {
             resumeid: true,
             userid: true,
@@ -77,8 +89,10 @@ router.get('/resume', requireAccessToken, async (req, res, next) => {
             }
         },
         orderBy: {
-            createdAt: validSortOrder,
+            createdAt: sortOrder
         }
+
+
     });
     // 일치하는 값이 없는 경우 → 빈 배열([])을 반환합니다. (StatusCode: 200)
     if (!resume) {
@@ -104,10 +118,6 @@ router.get('/resume', requireAccessToken, async (req, res, next) => {
 router.get('/resume/:resumeid', requireAccessToken, async (req, res, next) => {
     const userId = req.userId;
     const { resumeid } = req.params;
-    // → 이력서 정보가 없는 경우 → “이력서가 존재하지 않습니다.”
-    if (!resumeid) {
-        return res.status(400).json({ message: '이력서가 존재하지 않습니다.' });
-    }
     // → 현재 로그인 한 사용자가 작성한 이력서만 조회합니다.
     // → DB에서 이력서 조회 시 이력서 ID, 작성자 ID가 모두 일치해야 합니다.
     // → 작성자 ID가 아닌 작성자 이름을 반환하기 위해 스키마에 정의 한 Relation을 활용해 조회합니다.
@@ -131,6 +141,7 @@ router.get('/resume/:resumeid', requireAccessToken, async (req, res, next) => {
             }
         }
     });
+    // → 이력서 정보가 없는 경우 → “이력서가 존재하지 않습니다.”
     if (!resume) {
         return res.status(404).json({ message: '이력서가 존재하지 않습니다.' });
     }
@@ -238,65 +249,28 @@ router.delete('/resume/:resumeid', requireAccessToken, async (req, res, next) =>
 // 채용 담당자가 등록 된 모든 이력서를 조회합니다.
 
 // → Query Parameters(req.query)으로 필터링 조건을 받습니다.정렬과 필터링은 동시에 사용할 수 있습니다
-router.get('/resumeupdate/resume', requireAccessToken, async (req, res, next) => {
-    const { sortOrder = 'DESC', status } = req.query;
+// router.get('/resumeupdate/resume', requireAccessToken, requireRoles(['RECRUITER']), async (req, res, next) => { }
+// const { sortOrder = 'DESC', status } = req.query;
 
-    // 역할이 RECRUITER 인 경우 모든 사용자의 이력서를 조회할 수 있습니다.
-    const userRole = req.UserInfo.role;
+// 현재 사용자의 ID를 가져옵니다.
+// const { id } = req.user;
+// const userId = req.user.id;
 
-    if (userRole !== 'RECRUITER') {
-        return res.status(403).json({ message: '접근 권한이 없습니다.' });
-    }
 
-    //  정렬 및 필터링 조건에 따라 다른 결과 값을 조회합니다.
-    const validSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'asc' : 'desc';
+/**이력서 지원 상태 변경 API (🔐 AccessToken 인증, 역할 인가 필요) */
 
-    // → 지원 상태 별 필터링 조건을 받습니다. 값이 없는 경우 모든 상태의 이력서를 조회합니다
-    const statusFilter = status ? { applystatus: status } : {};
+// 사용자 정보는 인증 Middleware(req.user)를 통해서 전달 받습니다.
+router.patch('/resume/:resumeid/status', requireAccessToken, requireRoles(['RECRUITER']), (req, res, next) => {
+    // 허용 역할은 Middleware 사용 시 배열로 전달 받습니다.
 
-    // DB에서 이력서 목록을 조회합니다.
-    const resume = await prisma.resume.findMany({
-        where: {
-            ...statusFilter,
-        },
-        select: {
-            resumeid: true,
-            userid: true,
-            title: true,
-            content: true,
-            applystatus: true,
-            createdAt: true,
-            updatedAt: true,
-            UserInfo: {
-                select: {
-                    name: true
-                }
-            }
-        },
-        orderBy: {
-            createdAt: validSortOrder,
-        }
-    });
+    //     유효성 검증 및 에러 처리
 
-    // 일치하는 값이 없는 경우 → 빈 배열([])을 반환합니다. (StatusCode: 200)
-    if (!resume) {
-        return res.status(200).json([]);
-    }
+    //  허용 된 역할이 아닌 경우 - “접근 권한이 없습니다.”
+    // 반환 정보
+    //  반환없이 다음 동작을 진행합니다.
+}
+);
 
-    // → 이력서 ID, 작성자 이름, 제목, 자기소개, 지원 상태, 생성일시, 수정일시의 목록을 반환합니다.
-    const result = resume.map(resume => ({
-        resumeid: resume.resumeid,
-        userid: resume.userid,
-        name: resume.UserInfo.name,
-        title: resume.title,
-        content: resume.content,
-        applystatus: resume.applystatus,
-        createdAt: resume.createdAt,
-        updatedAt: resume.updatedAt,
-    }));
-
-    return res.status(200).json({ data: result });
-})
 
 export default router;
 
