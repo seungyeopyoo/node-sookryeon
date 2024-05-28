@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../utils/prisma.util.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { requireAccessToken } from '../middlewares/require-access-token.middleware.js';
 
 const router = express.Router();
 
@@ -119,10 +120,12 @@ router.post('/sign-in', async (req, res, next) => {
         }
 
         const token = generateAccessToken(user.id);
-        res.cookie('accessToken', `Bearer ${token}`); //accessToken을 cookie로 반환합니다.
+        // res.cookie('accessToken', `Bearer ${token}`); //accessToken을 cookie로 반환합니다.
+
 
         return res.status(200).json({
             message: '로그인에 성공했습니다.',
+            generateAccessToken: `Bearer ${token}`
         });
     } catch (err) {
         next(err);
