@@ -25,8 +25,6 @@ export const requireAccessToken = async (req, res, next) => {
         if (!user) {
             return res.status(401).json({ message: '인증 정보와 일치하는 사용자가 없습니다.' });
         }
-
-
         // →조회 된 사용자 정보를 req.user에 담고, 다음 동작을 진행합니다.
         req.user = user;
 

@@ -1,7 +1,6 @@
 import express from 'express';
 import { prisma } from '../utils/prisma.util.js';
 import { requireAccessToken } from '../middlewares/require-access-token.middleware.js';
-import { requireRoles } from '../middlewares/require-roles.middleware.js';
 
 const router = express.Router();
 /** 이력서 생성 API (🔐 AccessToken 인증 필요) 새로운 이력서를 생성합니다.*/
@@ -21,10 +20,8 @@ router.post('/resume', requireAccessToken, async (req, res, next) => {
     if (content.length < 150) {
         return res.status(400).json({ message: '자기소개는 150자 이상 작성해야 합니다.' });
     }
-
     // 사용자 ID는 미들웨어를 통해 req.user에 설정됨
     const { id } = req.user;
-
 
     // 새로운 이력서 생성
     const newResume = await prisma.resume.create({
@@ -245,36 +242,5 @@ router.delete('/resume/:resumeid', requireAccessToken, async (req, res, next) =>
     };
     return res.status(200).json({ data: result });
 })
-/**이력서 목록 조회 API 추가 구현 (🔐 AccessToken 인증) */
-// 채용 담당자가 등록 된 모든 이력서를 조회합니다.
-
-// → Query Parameters(req.query)으로 필터링 조건을 받습니다.정렬과 필터링은 동시에 사용할 수 있습니다
-// router.get('/resumeupdate/resume', requireAccessToken, requireRoles(['RECRUITER']), async (req, res, next) => { }
-// const { sortOrder = 'DESC', status } = req.query;
-
-// 현재 사용자의 ID를 가져옵니다.
-// const { id } = req.user;
-// const userId = req.user.id;
-
-
-/**이력서 지원 상태 변경 API (🔐 AccessToken 인증, 역할 인가 필요) */
-
-// 사용자 정보는 인증 Middleware(req.user)를 통해서 전달 받습니다.
-router.patch('/resume/:resumeid/status', requireAccessToken, requireRoles(['RECRUITER']), (req, res, next) => {
-    // 허용 역할은 Middleware 사용 시 배열로 전달 받습니다.
-
-    //     유효성 검증 및 에러 처리
-
-    //  허용 된 역할이 아닌 경우 - “접근 권한이 없습니다.”
-    // 반환 정보
-    //  반환없이 다음 동작을 진행합니다.
-}
-);
-
 
 export default router;
-
-/** 이력서 상세 조회 API 추가 구현 (🔐 AccessToken 인증)*/
-// 채용 담당자가 특정 사용자의 이력서를 조회합니다.
-
-// 역할이 RECRUITER 인 경우 이력서 작성 사용자와 일치하지 않아도 이력서를 조회할 수 있습니다.
